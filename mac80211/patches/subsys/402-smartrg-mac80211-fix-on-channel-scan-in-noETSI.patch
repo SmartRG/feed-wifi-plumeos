@@ -1,0 +1,33 @@
+--- a/net/mac80211/scan.c
++++ b/net/mac80211/scan.c
+@@ -671,10 +671,28 @@ static int __ieee80211_start_scan(struct
+ 	if (local->scan_req)
+ 		return -EBUSY;
+ 
+-	if (!__ieee80211_can_leave_ch(sdata))
++	/* home channel is DFS channel and on-chan scan */
++	if(ieee80211_is_radar_required(sdata->local) && 
++		(req->n_channels == 1 && req->channels[0]->center_freq == req->wdev->chandef.chan->center_freq))
++	{
++		struct ieee80211_sub_if_data *sdata_iter;
++
++		mutex_lock(&local->iflist_mtx);
++		list_for_each_entry(sdata_iter, &local->interfaces, list) {
++			if (sdata_iter->wdev.cac_started) {
++				mutex_unlock(&local->iflist_mtx);
++				return -EBUSY;
++			}
++		}
++		mutex_unlock(&local->iflist_mtx);
++	}
++	else if (!__ieee80211_can_leave_ch(sdata))
+ 		return -EBUSY;
+ 
+-	if (!ieee80211_can_scan(local, sdata)) {
++
++	if (!list_empty(&local->roc_list) || 
++		(sdata->vif.type == NL80211_IFTYPE_STATION && sdata->u.mgd.flags & IEEE80211_STA_CONNECTION_POLL))
++	{
+ 		/* wait for the work to finish/time out */
+ 		rcu_assign_pointer(local->scan_req, req);
+ 		rcu_assign_pointer(local->scan_sdata, sdata);
