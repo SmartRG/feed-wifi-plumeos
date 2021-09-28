@@ -1,0 +1,53 @@
+--- a/net/mac80211/scan.c
++++ b/net/mac80211/scan.c
+@@ -786,9 +786,7 @@ static int __ieee80211_start_scan(struct
+ 		/* We need to ensure power level is at max for scanning. */
+ 		ieee80211_hw_config(local, 0);
+ 
+-		if ((req->channels[0]->flags & (IEEE80211_CHAN_NO_IR |
+-						IEEE80211_CHAN_RADAR)) ||
+-		    !req->n_ssids) {
++		if (!req->n_ssids) {
+ 			next_delay = IEEE80211_PASSIVE_CHANNEL_TIME;
+ 		} else {
+ 			ieee80211_scan_state_send_probe(local, &next_delay);
+@@ -846,8 +844,6 @@ ieee80211_scan_get_channel_time(struct i
+ 	 * TODO: channel switching also consumes quite some time,
+ 	 * add that delay as well to get a better estimation
+ 	 */
+-	if (chan->flags & (IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_RADAR))
+-		return IEEE80211_PASSIVE_CHANNEL_TIME;
+ 	return IEEE80211_PROBE_DELAY + IEEE80211_CHANNEL_TIME;
+ }
+ 
+@@ -997,8 +993,7 @@ set_channel:
+ 	 *
+ 	 * In any case, it is not necessary for a passive scan.
+ 	 */
+-	if ((chan->flags & (IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_RADAR)) ||
+-	    !scan_req->n_ssids) {
++	if (!scan_req->n_ssids) {
+ 		*next_delay = IEEE80211_PASSIVE_CHANNEL_TIME;
+ 		local->next_scan_state = SCAN_DECISION;
+ 		return;
+@@ -1181,10 +1176,6 @@ int ieee80211_request_ibss_scan(struct i
+ 				struct ieee80211_channel *tmp_ch =
+ 				    &local->hw.wiphy->bands[band]->channels[i];
+ 
+-				if (tmp_ch->flags & (IEEE80211_CHAN_NO_IR |
+-						     IEEE80211_CHAN_DISABLED))
+-					continue;
+-
+ 				local->int_scan_req->channels[n_ch] = tmp_ch;
+ 				n_ch++;
+ 			}
+@@ -1196,9 +1187,6 @@ int ieee80211_request_ibss_scan(struct i
+ 		local->int_scan_req->n_channels = n_ch;
+ 	} else {
+ 		for (i = 0; i < n_channels; i++) {
+-			if (channels[i]->flags & (IEEE80211_CHAN_NO_IR |
+-						  IEEE80211_CHAN_DISABLED))
+-				continue;
+ 
+ 			local->int_scan_req->channels[n_ch] = channels[i];
+ 			n_ch++;

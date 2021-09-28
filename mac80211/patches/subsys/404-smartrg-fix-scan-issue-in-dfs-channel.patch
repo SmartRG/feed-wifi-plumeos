@@ -1,0 +1,27 @@
+Index: backports-5.10.42-1/net/mac80211/scan.c
+===================================================================
+--- backports-5.10.42-1.orig/net/mac80211/scan.c
++++ backports-5.10.42-1/net/mac80211/scan.c
+@@ -544,8 +544,10 @@ static bool __ieee80211_can_leave_ch(str
+ 	if (!ieee80211_is_radar_required(local))
+ 		return true;
+ 
++#if 0
+ 	if (!regulatory_pre_cac_allowed(local->hw.wiphy))
+ 		return false;
++#endif
+ 
+ 	mutex_lock(&local->iflist_mtx);
+ 	list_for_each_entry(sdata_iter, &local->interfaces, list) {
+Index: backports-5.10.42-1/net/wireless/mlme.c
+===================================================================
+--- backports-5.10.42-1.orig/net/wireless/mlme.c
++++ backports-5.10.42-1/net/wireless/mlme.c
+@@ -953,6 +953,7 @@ void cfg80211_cac_event(struct net_devic
+ 		       sizeof(struct cfg80211_chan_def));
+ 		queue_work(cfg80211_wq, &rdev->propagate_cac_done_wk);
+ 		cfg80211_sched_dfs_chan_update(rdev);
++		wdev->cac_started = false;
+ 		fallthrough;
+ 	case NL80211_RADAR_CAC_ABORTED:
+ 		wdev->cac_started = false;

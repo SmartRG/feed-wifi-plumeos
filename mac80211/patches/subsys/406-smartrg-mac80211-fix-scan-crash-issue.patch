@@ -1,0 +1,26 @@
+Index: backports-5.10.42-1/net/mac80211/scan.c
+===================================================================
+--- backports-5.10.42-1.orig/net/mac80211/scan.c
++++ backports-5.10.42-1/net/mac80211/scan.c
+@@ -671,10 +671,21 @@ static int __ieee80211_start_scan(struct
+ 	lockdep_assert_held(&local->mtx);
+ 
+ 	if (local->scan_req)
+ 		return -EBUSY;
+ 
++	if (!req || !req->channels[0] || !req->wdev) {
++		printk("%s nullptr\n", __func__);
++		if (!req)
++			printk("%s req empty!!\n", __func__);
++		if (req && !req->channels[0])
++			printk("%s req->channels[0] empty!!\n", __func__);
++		if (req && !req->wdev)
++			printk("%s req->wdev empty!!\n", __func__);
++		return -EBUSY;
++	}
++
+ 	/* home channel is DFS channel and on-chan scan */
+ 	if(ieee80211_is_radar_required(sdata->local) && 
+ 		(req->n_channels == 1 && req->channels[0]->center_freq == req->wdev->chandef.chan->center_freq))
+ 	{
+ 		struct ieee80211_sub_if_data *sdata_iter;
