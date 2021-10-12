@@ -1,0 +1,12 @@
+--- a/wpa_supplicant/events.c
++++ b/wpa_supplicant/events.c
+@@ -5028,6 +5028,9 @@ void supplicant_event(void *ctx, enum wp
+ #ifdef CONFIG_AP
+ #ifdef NEED_AP_MLME
+ 	case EVENT_DFS_RADAR_DETECTED:
++		wpa_supplicant_deauthenticate(wpa_s, WLAN_REASON_DEAUTH_LEAVING);
++		wpa_config_remove_network(wpa_s->conf, 0);
++		wpa_drv_if_remove(wpa_s, WPA_IF_STATION, wpa_s->ifname);
+ 		if (data)
+ 			wpas_ap_event_dfs_radar_detected(wpa_s,
+ 							 &data->dfs_event);

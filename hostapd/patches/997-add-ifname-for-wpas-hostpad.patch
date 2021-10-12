@@ -1,0 +1,39 @@
+--- a/wpa_supplicant/events.c
++++ b/wpa_supplicant/events.c
+@@ -4628,6 +4628,7 @@ supplicant_ch_switch_started(struct wpa_
+ 	char *cmd = NULL;
+ 	int width = 20;
+ 	int ret;
++	char ifname[32];
+ 
+ 	if (!wpa_s->hostapd)
+ 		return;
+@@ -4659,7 +4660,14 @@ supplicant_ch_switch_started(struct wpa_
+ 		break;
+ 	}
+ 
+-	asprintf(&cmd, "CHAN_SWITCH %d %d sec_channel_offset=%d center_freq1=%d center_freq2=%d, bandwidth=%d auto-ht\n",
++	if (data->ch_switch.freq < 5000)
++		snprintf(ifname, sizeof(ifname), "bhaul-ap-24");
++	else if (data->ch_switch.freq >= 5000 && data->ch_switch.freq < 5500)
++		snprintf(ifname, sizeof(ifname), "bhaul-ap-l50");
++	else
++		snprintf(ifname, sizeof(ifname), "bhaul-ap-u50");
++	asprintf(&cmd, "IFNAME=%s CHAN_SWITCH %d %d sec_channel_offset=%d center_freq1=%d center_freq2=%d, bandwidth=%d auto-ht\n",
++		ifname,
+ 		data->ch_switch.count - 1,
+ 		data->ch_switch.freq,
+ 		data->ch_switch.ch_offset,
+--- a/wpa_supplicant/wpa_supplicant.c
++++ b/wpa_supplicant/wpa_supplicant.c
+@@ -6269,8 +6269,8 @@ static int wpa_supplicant_init_iface(str
+ 			   sizeof(wpa_s->bridge_ifname));
+ 	}
+ 
+-	if (iface->hostapd_ctrl) {
+-		wpa_s->hostapd = wpa_ctrl_open(iface->hostapd_ctrl);
++	if (1) {
++		wpa_s->hostapd = wpa_ctrl_open("/var/run/hostapd/global");
+ 		if (!wpa_s->hostapd) {
+ 			wpa_printf(MSG_ERROR, "\nFailed to connect to hostapd\n");
+ 			return -1;
