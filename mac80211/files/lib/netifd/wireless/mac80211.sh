@@ -147,6 +147,9 @@ mac80211_hostapd_setup_base() {
 	[ "$noscan" -gt 0 ] && hostapd_noscan=1
 	[ "$tx_burst" = 0 ] && tx_burst=
 
+	chan_ofs=0
+	[ "$band" = "6g" ] && chan_ofs=1
+
 	ieee80211n=1
 	ht_capab=
 	case "$htmode" in
@@ -154,7 +157,7 @@ mac80211_hostapd_setup_base() {
 		HT40*|VHT40|VHT80|VHT160|HE40|HE80|HE160)
 			case "$hwmode" in
 				a)
-					case "$(( ($channel / 4) % 2 ))" in
+					case "$(( (($channel / 4) + $chan_ofs) % 2 ))" in
 						1) ht_capab="[HT40+]";;
 						0) ht_capab="[HT40-]";;
 					esac
@@ -223,8 +226,6 @@ mac80211_hostapd_setup_base() {
 	enable_ac=0
 	vht_oper_chwidth=0
 	vht_center_seg0=
-	chan_ofs=0
-	[ "$band" = "6g" ] && chan_ofs=1
 
 	idx="$channel"
 	case "$htmode" in
@@ -389,16 +390,16 @@ mac80211_hostapd_setup_base() {
 	if [ "$enable_ax" != "0" ]; then
 		json_get_vars \
 			he_su_beamformer:1 \
-			he_su_beamformee:0 \
+			he_su_beamformee:1 \
 			he_mu_beamformer:1 \
 			he_twt_required:0 \
 			he_spr_sr_control:0 \
 			he_spr_non_srg_obss_pd_max_offset:1 \
 			he_bss_color
 
-		he_phy_cap=$(iw phy "$phy" info | awk -F "[()]" '/HE PHY Capabilities/ { print $2 }' | head -1)
+		he_phy_cap=$(iw phy "$phy" info | awk '/HE Iftypes: AP/,0' | awk -F "[()]" '/HE PHY Capabilities/ { print $2 }' | head -1)
 		he_phy_cap=${he_phy_cap:2}
-		he_mac_cap=$(iw phy "$phy" info | awk -F "[()]" '/HE MAC Capabilities/ { print $2 }' | head -1)
+		he_mac_cap=$(iw phy "$phy" info | awk '/HE Iftypes: AP/,0' | awk -F "[()]" '/HE MAC Capabilities/ { print $2 }' | head -1)
 		he_mac_cap=${he_mac_cap:2}
 
 		append base_cfg "ieee80211ax=1" "$N"
@@ -624,7 +625,7 @@ mac80211_iw_interface_add() {
 		rc="$?"
 	}
 
-	[ "$rc" != 0 ] && wireless_setup_failed INTERFACE_CREATION_FAILED
+	[ "$rc" != 0 ] && echo "Failed to create interface $ifname"
 	return $rc
 }
 
