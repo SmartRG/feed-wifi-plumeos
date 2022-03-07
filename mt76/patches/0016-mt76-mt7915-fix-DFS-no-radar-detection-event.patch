@@ -1,0 +1,27 @@
+--- a/mt7915/mac.c	2022-03-07 07:20:40.477826456 +0000
++++ b/mt7915/mac.c	2022-03-07 07:36:32.841822256 +0000
+@@ -2246,9 +2246,22 @@
+ 
+ static int mt7915_dfs_start_rdd(struct mt7915_dev *dev, int chain)
+ {
+-	int err;
++	int err, region;
+ 
+-	err = mt7915_mcu_rdd_cmd(dev, RDD_START, chain, MT_RX_SEL0, 0);
++	switch (dev->mt76.region) {
++	case NL80211_DFS_ETSI:
++		region = 0;
++		break;
++	case NL80211_DFS_JP:
++		region = 2;
++		break;
++	case NL80211_DFS_FCC:
++	default:
++		region = 1;
++		break;
++	}
++
++	err = mt7915_mcu_rdd_cmd(dev, RDD_START, chain, MT_RX_SEL0, region);
+ 
+ 	dev_dbg(dev->mt76.dev, "dfs-start-rdd, RDD_START rv: %d", err);
+ 	if (err < 0)
