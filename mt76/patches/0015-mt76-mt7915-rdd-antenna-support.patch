@@ -1,0 +1,54 @@
+--- a/mt7915/init.c
++++ b/mt7915/init.c
+@@ -5,6 +5,7 @@
+ #include <linux/hwmon.h>
+ #include <linux/hwmon-sysfs.h>
+ #include <linux/thermal.h>
++#include <linux/of.h>
+ #include "mt7915.h"
+ #include "mac.h"
+ #include "mcu.h"
+@@ -660,6 +661,11 @@ static int mt7915_init_hardware(struct m
+ 
+ 	dev->dbdc_support = mt7915_band_config(dev);
+ 
++	if (of_property_read_u32(dev->mt76.dev->of_node, "rdd_antenna",
++		&dev->phy.rdd_antenna))
++		dev_info(dev->mt76.dev, "%s: rdd_antenna = %u\n",
++			__func__, dev->phy.rdd_antenna);
++
+ 	mt7915_wfsys_reset(dev);
+ 
+ 	ret = mt7915_dma_init(dev);
+--- a/mt7915/mac.c
++++ b/mt7915/mac.c
+@@ -2492,6 +2492,11 @@ int mt7915_dfs_init_radar_detector(struc
+ 		if (err < 0)
+ 			return err;
+ 
++		err = mt76_connac_mcu_rdd_cmd(&dev->mt76, RDD_SET_WF_ANT, 0,
++				MT_RX_SEL0, phy->rdd_antenna);
++		if (err < 0)
++			return err;
++
+ 		err = mt7915_dfs_start_radar_detector(phy);
+ 		if (err < 0)
+ 			return err;
+--- a/mt7915/mt7915.h
++++ b/mt7915/mt7915.h
+@@ -237,6 +237,7 @@ struct mt7915_phy {
+ 	u32 throttle_temp[2]; /* 0: critical high, 1: maximum */
+ 
+ 	u32 rxfilter;
++	u32 rdd_antenna;
+ 	u64 omac_mask;
+ 	u8 band_idx;
+ 
+@@ -361,6 +362,7 @@ enum mt7915_rdd_cmd {
+ 	RDD_DET_MODE,
+ 	RDD_RADAR_EMULATE,
+ 	RDD_START_TXQ = 20,
++	RDD_SET_WF_ANT = 30,
+ 	RDD_CAC_START = 50,
+ 	RDD_CAC_END,
+ 	RDD_NORMAL_START,

@@ -52,6 +52,6 @@ Index: ath10k-ct-2021-11-28-dc350bbf/ath10k-5.15/core.c
 +	mac = of_get_mac_address(ar->dev->of_node);
 +	if (!IS_ERR(mac))
 +		ether_addr_copy(ar->mac_addr, mac);
-
+ 
  	ret = ath10k_core_init_firmware_features(ar);
  	if (ret) {

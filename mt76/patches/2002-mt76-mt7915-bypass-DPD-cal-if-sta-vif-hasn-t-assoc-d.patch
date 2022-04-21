@@ -1,0 +1,168 @@
+From 2814469e16c3bd392139ab3ad9f495a2a05f7b97 Mon Sep 17 00:00:00 2001
+From: Shayne Chen <shayne.chen@mediatek.com>
+Date: Thu, 14 Apr 2022 19:36:35 +0800
+Subject: [PATCH 1/2] mt76: mt7915: bypass DPD cal if sta vif hasn't assoc
+ during scan
+
+It is unnecessary to do the normal switch channel calibration for
+unassociated sta vif during scanning.
+
+Signed-off-by: Shayne Chen <shayne.chen@mediatek.com>
+---
+ mt76.h          |  1 +
+ mt7915/main.c   | 32 ++++++++++++++++++++++++++++++--
+ mt7915/mcu.c    | 30 ++++++++++++++++++++++++++++--
+ mt7915/mt7915.h |  2 ++
+ 4 files changed, 61 insertions(+), 4 deletions(-)
+
+diff --git a/mt76.h b/mt76.h
+index 4dc0a99b..902cf22b 100644
+--- a/mt76.h
++++ b/mt76.h
+@@ -337,6 +337,7 @@ enum {
+ 	MT76_STATE_RUNNING,
+ 	MT76_STATE_MCU_RUNNING,
+ 	MT76_SCANNING,
++	MT76_SCANNING_STA,
+ 	MT76_HW_SCANNING,
+ 	MT76_HW_SCHED_SCANNING,
+ 	MT76_RESTART,
+diff --git a/mt7915/main.c b/mt7915/main.c
+index c3f44d80..86dbc986 100644
+--- a/mt7915/main.c
++++ b/mt7915/main.c
+@@ -601,8 +601,13 @@ static void mt7915_bss_info_changed(struct ieee80211_hw *hw,
+ 	}
+ 
+ 	if (changed & BSS_CHANGED_ASSOC) {
++		struct mt7915_vif *mvif = (struct mt7915_vif *)vif->drv_priv;
++
+ 		mt7915_mcu_add_bss_info(phy, vif, info->assoc);
+ 		mt7915_mcu_add_obss_spr(dev, vif, info->he_obss_pd.enable);
++
++		if (vif->type == NL80211_IFTYPE_STATION)
++			mvif->associated = info->assoc;
+ 	}
+ 
+ 	if (changed & BSS_CHANGED_ERP_SLOT) {
+@@ -1381,6 +1386,29 @@ out:
+ 	return ret;
+ }
+ 
++static void
++mt7915_sw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
++	       const u8 *mac)
++{
++	struct mt76_phy *phy = hw->priv;
++
++	if (vif->type == NL80211_IFTYPE_STATION)
++		set_bit(MT76_SCANNING_STA, &phy->state);
++
++	mt76_sw_scan(hw, vif, mac);
++}
++
++static void
++mt7915_sw_scan_complete(struct ieee80211_hw *hw, struct ieee80211_vif *vif)
++{
++	struct mt76_phy *phy = hw->priv;
++
++	if (vif->type == NL80211_IFTYPE_STATION)
++		clear_bit(MT76_SCANNING_STA, &phy->state);
++
++	mt76_sw_scan_complete(hw, vif);
++}
++
+ const struct ieee80211_ops mt7915_ops = {
+ 	.tx = mt7915_tx,
+ 	.start = mt7915_start,
+@@ -1399,8 +1427,8 @@ const struct ieee80211_ops mt7915_ops = {
+ 	.ampdu_action = mt7915_ampdu_action,
+ 	.set_rts_threshold = mt7915_set_rts_threshold,
+ 	.wake_tx_queue = mt76_wake_tx_queue,
+-	.sw_scan_start = mt76_sw_scan,
+-	.sw_scan_complete = mt76_sw_scan_complete,
++	.sw_scan_start = mt7915_sw_scan,
++	.sw_scan_complete = mt7915_sw_scan_complete,
+ 	.release_buffered_frames = mt76_release_buffered_frames,
+ 	.get_txpower = mt76_get_txpower,
+ 	.set_sar_specs = mt7915_set_sar_specs,
+diff --git a/mt7915/mcu.c b/mt7915/mcu.c
+index 78f23586..6051c4f9 100644
+--- a/mt7915/mcu.c
++++ b/mt7915/mcu.c
+@@ -2782,6 +2782,18 @@ int mt7915_mcu_rdd_background_enable(struct mt7915_phy *phy,
+ 				       0, region);
+ }
+ 
++static void
++mt7915_check_assoc_iter(void *priv, u8 *mac, struct ieee80211_vif *vif)
++{
++	struct mt7915_vif *mvif = (struct mt7915_vif *)vif->drv_priv;
++	bool *associated = priv;
++
++	if (vif->type != NL80211_IFTYPE_STATION)
++		return;
++
++	*associated |= mvif->associated;
++}
++
+ int mt7915_mcu_set_chan_info(struct mt7915_phy *phy, int cmd)
+ {
+ 	static const u8 ch_band[] = {
+@@ -2818,6 +2830,8 @@ int mt7915_mcu_set_chan_info(struct mt7915_phy *phy, int cmd)
+ 		.band_idx = phy->band_idx,
+ 		.channel_band = ch_band[chandef->chan->band],
+ 	};
++	int ret = 0;
++	bool associated = false;
+ 
+ #ifdef CONFIG_NL80211_TESTMODE
+ 	if (phy->mt76->test.tx_antenna_mask &&
+@@ -2827,9 +2841,14 @@ int mt7915_mcu_set_chan_info(struct mt7915_phy *phy, int cmd)
+ 	}
+ #endif
+ 
++	ieee80211_iterate_active_interfaces(phy->mt76->hw,
++					    IEEE80211_IFACE_ITER_RESUME_ALL,
++					    mt7915_check_assoc_iter, &associated);
++
+ 	if (cmd == MCU_EXT_CMD(SET_RX_PATH))
+ 		req.switch_reason = CH_SWITCH_NORMAL;
+-	else if (phy->mt76->hw->conf.flags & IEEE80211_CONF_OFFCHANNEL)
++	else if ((phy->mt76->hw->conf.flags & IEEE80211_CONF_OFFCHANNEL) ||
++		 (test_bit(MT76_SCANNING_STA, &phy->mt76->state) && !associated))
+ 		req.switch_reason = CH_SWITCH_SCAN_BYPASS_DPD;
+ 	else if (!cfg80211_reg_can_beacon(phy->mt76->hw->wiphy, chandef,
+ 					  NL80211_IFTYPE_AP))
+@@ -2846,7 +2865,14 @@ int mt7915_mcu_set_chan_info(struct mt7915_phy *phy, int cmd)
+ 		req.center_ch2 = ieee80211_frequency_to_channel(freq2);
+ 	}
+ 
+-	return mt76_mcu_send_msg(&dev->mt76, cmd, &req, sizeof(req), true);
++	ret = mt76_mcu_send_msg(&dev->mt76, cmd, &req, sizeof(req), true);
++	if (ret)
++		return ret;
++
++	if (dev->dbdc_support && req.switch_reason == CH_SWITCH_NORMAL)
++		msleep(50);
++
++	return ret;
+ }
+ 
+ static int mt7915_mcu_set_eeprom_flash(struct mt7915_dev *dev)
+diff --git a/mt7915/mt7915.h b/mt7915/mt7915.h
+index 7ad550c2..c134415d 100644
+--- a/mt7915/mt7915.h
++++ b/mt7915/mt7915.h
+@@ -159,6 +159,8 @@ struct mt7915_vif {
+ 
+ 	struct ieee80211_tx_queue_params queue_params[IEEE80211_NUM_ACS];
+ 	struct cfg80211_bitrate_mask bitrate_mask;
++
++	bool associated;
+ };
+ 
+ /* per-phy stats.  */
+-- 
+2.32.0 (Apple Git-132)
+
