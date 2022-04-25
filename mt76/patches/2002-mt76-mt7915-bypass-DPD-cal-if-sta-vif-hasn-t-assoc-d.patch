@@ -15,11 +15,11 @@ Signed-off-by: Shayne Chen <shayne.chen@mediatek.com>
  mt7915/mt7915.h |  2 ++
  4 files changed, 61 insertions(+), 4 deletions(-)
 
-diff --git a/mt76.h b/mt76.h
-index 4dc0a99b..902cf22b 100644
---- a/mt76.h
-+++ b/mt76.h
-@@ -337,6 +337,7 @@ enum {
+Index: mt76-2022-04-22-a666d563/mt76.h
+===================================================================
+--- mt76-2022-04-22-a666d563.orig/mt76.h
++++ mt76-2022-04-22-a666d563/mt76.h
+@@ -356,6 +356,7 @@ enum {
  	MT76_STATE_RUNNING,
  	MT76_STATE_MCU_RUNNING,
  	MT76_SCANNING,
@@ -27,11 +27,11 @@ index 4dc0a99b..902cf22b 100644
  	MT76_HW_SCANNING,
  	MT76_HW_SCHED_SCANNING,
  	MT76_RESTART,
-diff --git a/mt7915/main.c b/mt7915/main.c
-index c3f44d80..86dbc986 100644
---- a/mt7915/main.c
-+++ b/mt7915/main.c
-@@ -601,8 +601,13 @@ static void mt7915_bss_info_changed(struct ieee80211_hw *hw,
+Index: mt76-2022-04-22-a666d563/mt7915/main.c
+===================================================================
+--- mt76-2022-04-22-a666d563.orig/mt7915/main.c
++++ mt76-2022-04-22-a666d563/mt7915/main.c
+@@ -603,8 +603,13 @@ static void mt7915_bss_info_changed(stru
  	}
  
  	if (changed & BSS_CHANGED_ASSOC) {
@@ -45,9 +45,9 @@ index c3f44d80..86dbc986 100644
  	}
  
  	if (changed & BSS_CHANGED_ERP_SLOT) {
-@@ -1381,6 +1386,29 @@ out:
- 	return ret;
+@@ -1432,6 +1437,29 @@ mt7915_net_fill_forward_path(struct ieee
  }
+ #endif
  
 +static void
 +mt7915_sw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
@@ -75,7 +75,7 @@ index c3f44d80..86dbc986 100644
  const struct ieee80211_ops mt7915_ops = {
  	.tx = mt7915_tx,
  	.start = mt7915_start,
-@@ -1399,8 +1427,8 @@ const struct ieee80211_ops mt7915_ops = {
+@@ -1450,8 +1478,8 @@ const struct ieee80211_ops mt7915_ops =
  	.ampdu_action = mt7915_ampdu_action,
  	.set_rts_threshold = mt7915_set_rts_threshold,
  	.wake_tx_queue = mt76_wake_tx_queue,
@@ -86,11 +86,11 @@ index c3f44d80..86dbc986 100644
  	.release_buffered_frames = mt76_release_buffered_frames,
  	.get_txpower = mt76_get_txpower,
  	.set_sar_specs = mt7915_set_sar_specs,
-diff --git a/mt7915/mcu.c b/mt7915/mcu.c
-index 78f23586..6051c4f9 100644
---- a/mt7915/mcu.c
-+++ b/mt7915/mcu.c
-@@ -2782,6 +2782,18 @@ int mt7915_mcu_rdd_background_enable(struct mt7915_phy *phy,
+Index: mt76-2022-04-22-a666d563/mt7915/mcu.c
+===================================================================
+--- mt76-2022-04-22-a666d563.orig/mt7915/mcu.c
++++ mt76-2022-04-22-a666d563/mt7915/mcu.c
+@@ -2897,6 +2897,18 @@ int mt7915_mcu_rdd_background_enable(str
  				       0, region);
  }
  
@@ -109,7 +109,7 @@ index 78f23586..6051c4f9 100644
  int mt7915_mcu_set_chan_info(struct mt7915_phy *phy, int cmd)
  {
  	static const u8 ch_band[] = {
-@@ -2818,6 +2830,8 @@ int mt7915_mcu_set_chan_info(struct mt7915_phy *phy, int cmd)
+@@ -2933,6 +2945,8 @@ int mt7915_mcu_set_chan_info(struct mt79
  		.band_idx = phy->band_idx,
  		.channel_band = ch_band[chandef->chan->band],
  	};
@@ -118,7 +118,7 @@ index 78f23586..6051c4f9 100644
  
  #ifdef CONFIG_NL80211_TESTMODE
  	if (phy->mt76->test.tx_antenna_mask &&
-@@ -2827,9 +2841,14 @@ int mt7915_mcu_set_chan_info(struct mt7915_phy *phy, int cmd)
+@@ -2942,10 +2956,15 @@ int mt7915_mcu_set_chan_info(struct mt79
  	}
  #endif
  
@@ -126,7 +126,8 @@ index 78f23586..6051c4f9 100644
 +					    IEEE80211_IFACE_ITER_RESUME_ALL,
 +					    mt7915_check_assoc_iter, &associated);
 +
- 	if (cmd == MCU_EXT_CMD(SET_RX_PATH))
+ 	if (cmd == MCU_EXT_CMD(SET_RX_PATH) ||
+ 	    dev->mt76.hw->conf.flags & IEEE80211_CONF_MONITOR)
  		req.switch_reason = CH_SWITCH_NORMAL;
 -	else if (phy->mt76->hw->conf.flags & IEEE80211_CONF_OFFCHANNEL)
 +	else if ((phy->mt76->hw->conf.flags & IEEE80211_CONF_OFFCHANNEL) ||
@@ -134,7 +135,7 @@ index 78f23586..6051c4f9 100644
  		req.switch_reason = CH_SWITCH_SCAN_BYPASS_DPD;
  	else if (!cfg80211_reg_can_beacon(phy->mt76->hw->wiphy, chandef,
  					  NL80211_IFTYPE_AP))
-@@ -2846,7 +2865,14 @@ int mt7915_mcu_set_chan_info(struct mt7915_phy *phy, int cmd)
+@@ -2962,7 +2981,14 @@ int mt7915_mcu_set_chan_info(struct mt79
  		req.center_ch2 = ieee80211_frequency_to_channel(freq2);
  	}
  
@@ -150,11 +151,11 @@ index 78f23586..6051c4f9 100644
  }
  
  static int mt7915_mcu_set_eeprom_flash(struct mt7915_dev *dev)
-diff --git a/mt7915/mt7915.h b/mt7915/mt7915.h
-index 7ad550c2..c134415d 100644
---- a/mt7915/mt7915.h
-+++ b/mt7915/mt7915.h
-@@ -159,6 +159,8 @@ struct mt7915_vif {
+Index: mt76-2022-04-22-a666d563/mt7915/mt7915.h
+===================================================================
+--- mt76-2022-04-22-a666d563.orig/mt7915/mt7915.h
++++ mt76-2022-04-22-a666d563/mt7915/mt7915.h
+@@ -160,6 +160,8 @@ struct mt7915_vif {
  
  	struct ieee80211_tx_queue_params queue_params[IEEE80211_NUM_ACS];
  	struct cfg80211_bitrate_mask bitrate_mask;
@@ -163,6 +164,3 @@ index 7ad550c2..c134415d 100644
  };
  
  /* per-phy stats.  */
--- 
-2.32.0 (Apple Git-132)
-

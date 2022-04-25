@@ -8,9 +8,9 @@ PKG_LICENSE_FILES:=
 
 PKG_SOURCE_URL:=https://github.com/openwrt/mt76
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_DATE:=2022-03-14
-PKG_SOURCE_VERSION:=c6780c85cff2ab3ab350900510f19a1b77f45685
-PKG_MIRROR_HASH:=96f29b41c7c698b8b2918b04dbddcf0fc3f50d9a8f6c0fd659e181d69c960805
+PKG_SOURCE_DATE:=2022-04-22
+PKG_SOURCE_VERSION:=a666d5637bc3afd3e310be09fac048906560097b
+PKG_MIRROR_HASH:=1a7f7a36e5e376d1b18da98c7939f980855f1981be0c3ad7024360dee702c9f8
 
 PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
 PKG_USE_NINJA:=0
@@ -449,6 +449,7 @@ endef
 
 define Package/mt76-test/install
 	mkdir -p $(1)/usr/sbin
+	$(INSTALL_BIN) ./files/mt76-reg $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tools/mt76-test $(1)/usr/sbin
 endef
 
