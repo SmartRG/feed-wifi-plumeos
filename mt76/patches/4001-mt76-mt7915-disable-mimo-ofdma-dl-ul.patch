@@ -1,7 +1,5 @@
-Index: mt76-2022-04-28-784c27b1/mt7915/init.c
-===================================================================
---- mt76-2022-04-28-784c27b1.orig/mt7915/init.c
-+++ mt76-2022-04-28-784c27b1/mt7915/init.c
+--- a/mt7915/init.c
++++ b/mt7915/init.c
 @@ -582,7 +582,7 @@ static void mt7915_init_work(struct work
  	mt7915_init_txpower(dev, &dev->mphy.sband_5g.sband);
  	mt7915_init_txpower(dev, &dev->mphy.sband_6g.sband);

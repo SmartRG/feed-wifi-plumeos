@@ -14,17 +14,17 @@ Subject: [PATCH 1004/1006] mt76: mt7915: add support for muru_onoff via
 
 --- a/mt7915/init.c
 +++ b/mt7915/init.c
-@@ -573,6 +573,7 @@ static void mt7915_init_work(struct work
+@@ -577,6 +577,7 @@ static void mt7915_init_work(struct work
  	mt7915_init_txpower(dev, &dev->mphy.sband_5g.sband);
  	mt7915_init_txpower(dev, &dev->mphy.sband_6g.sband);
  	mt7915_txbf_init(dev);
 +	dev->dbg.muru_onoff = OFDMA_DL | MUMIMO_UL | MUMIMO_DL;
  }
  
- static void mt7915_wfsys_reset(struct mt7915_dev *dev)
+ void mt7915_wfsys_reset(struct mt7915_dev *dev)
 --- a/mt7915/mcu.c
 +++ b/mt7915/mcu.c
-@@ -971,6 +971,7 @@ mt7915_mcu_sta_muru_tlv(struct sk_buff *
+@@ -975,6 +975,7 @@ mt7915_mcu_sta_muru_tlv(struct sk_buff *
  			struct ieee80211_vif *vif)
  {
  	struct mt7915_vif *mvif = (struct mt7915_vif *)vif->drv_priv;
@@ -32,7 +32,7 @@ Subject: [PATCH 1004/1006] mt76: mt7915: add support for muru_onoff via
  	struct ieee80211_he_cap_elem *elem = &sta->he_cap.he_cap_elem;
  	struct sta_rec_muru *muru;
  	struct tlv *tlv;
-@@ -983,11 +984,14 @@ mt7915_mcu_sta_muru_tlv(struct sk_buff *
+@@ -987,11 +988,14 @@ mt7915_mcu_sta_muru_tlv(struct sk_buff *
  
  	muru = (struct sta_rec_muru *)tlv;
  
@@ -53,7 +53,7 @@ Subject: [PATCH 1004/1006] mt76: mt7915: add support for muru_onoff via
  		muru->mimo_dl.vht_mu_bfee =
 --- a/mt7915/mcu.h
 +++ b/mt7915/mcu.h
-@@ -568,4 +568,10 @@ struct csi_data {
+@@ -558,4 +558,10 @@ struct csi_data {
  };
  #endif
  
@@ -66,9 +66,9 @@ Subject: [PATCH 1004/1006] mt76: mt7915: add support for muru_onoff via
  #endif
 --- a/mt7915/mt7915.h
 +++ b/mt7915/mt7915.h
-@@ -386,6 +386,7 @@ struct mt7915_dev {
- 		u32 bcn_total_cnt[2];
- 		u16 fwlog_seq;
+@@ -391,6 +391,7 @@ struct mt7915_dev {
+ 		bool dump_rx_pkt;
+ 		bool dump_rx_raw;
  		u32 token_idx;
 +		u8 muru_onoff;
  	} dbg;
@@ -76,7 +76,7 @@ Subject: [PATCH 1004/1006] mt76: mt7915: add support for muru_onoff via
  #endif
 --- a/mt7915/mtk_debugfs.c
 +++ b/mt7915/mtk_debugfs.c
-@@ -2430,6 +2430,38 @@ static int mt7915_token_txd_read(struct
+@@ -2454,6 +2454,38 @@ static int mt7915_token_txd_read(struct
  	return 0;
  }
  
@@ -115,7 +115,7 @@ Subject: [PATCH 1004/1006] mt76: mt7915: add support for muru_onoff via
  static int mt7915_amsduinfo_read(struct seq_file *s, void *data)
  {
  	struct mt7915_dev *dev = dev_get_drvdata(s->private);
-@@ -2807,6 +2839,7 @@ int mt7915_mtk_init_debugfs(struct mt791
+@@ -2831,6 +2863,7 @@ int mt7915_mtk_init_debugfs(struct mt791
  
  	mt7915_mcu_fw_log_2_host(dev, MCU_FW_LOG_WM, 0);
  

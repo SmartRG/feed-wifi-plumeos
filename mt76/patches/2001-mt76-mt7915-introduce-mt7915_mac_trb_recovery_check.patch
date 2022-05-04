@@ -16,11 +16,9 @@ Signed-off-by: Ryder Lee <ryder.lee@mediatek.com>
  .../net/wireless/mediatek/mt76/mt7915/regs.h  |  8 ++++++
  2 files changed, 35 insertions(+)
 
-Index: mt76-2022-04-28-784c27b1/mt7915/mac.c
-===================================================================
---- mt76-2022-04-28-784c27b1.orig/mt7915/mac.c
-+++ mt76-2022-04-28-784c27b1/mt7915/mac.c
-@@ -2433,6 +2433,42 @@ void mt7915_capi_sta_rc_work(void *data,
+--- a/mt7915/mac.c
++++ b/mt7915/mac.c
+@@ -2447,6 +2447,42 @@ void mt7915_capi_sta_rc_work(void *data,
  }
  #endif
  
@@ -63,7 +61,7 @@ Index: mt76-2022-04-28-784c27b1/mt7915/mac.c
  void mt7915_mac_sta_rc_work(struct work_struct *work)
  {
  	struct mt7915_dev *dev = container_of(work, struct mt7915_dev, rc_work);
-@@ -2492,6 +2528,7 @@ void mt7915_mac_work(struct work_struct
+@@ -2506,6 +2542,7 @@ void mt7915_mac_work(struct work_struct
  		mphy->mac_work_count = 0;
  
  		mt7915_mac_update_stats(phy);
@@ -71,10 +69,8 @@ Index: mt76-2022-04-28-784c27b1/mt7915/mac.c
  	}
  
  	mutex_unlock(&mphy->dev->mutex);
-Index: mt76-2022-04-28-784c27b1/mt7915/regs.h
-===================================================================
---- mt76-2022-04-28-784c27b1.orig/mt7915/regs.h
-+++ mt76-2022-04-28-784c27b1/mt7915/regs.h
+--- a/mt7915/regs.h
++++ b/mt7915/regs.h
 @@ -183,6 +183,18 @@ enum offs_rev {
  #define MT_MDP_TOP_DBG_CTRL			MT_MDP(0x0dc)
  #define MT_MDP_TOP_DBG_CTRL_ENQ_MODE		BIT(30)
@@ -94,11 +90,9 @@ Index: mt76-2022-04-28-784c27b1/mt7915/regs.h
  /* TMAC: band 0(0x820e4000), band 1(0x820f4000) */
  #define MT_WF_TMAC_BASE(_band)		((_band) ? 0x820f4000 : 0x820e4000)
  #define MT_WF_TMAC(_band, ofs)		(MT_WF_TMAC_BASE(_band) + (ofs))
-Index: mt76-2022-04-28-784c27b1/mt7915/mt7915.h
-===================================================================
---- mt76-2022-04-28-784c27b1.orig/mt7915/mt7915.h
-+++ mt76-2022-04-28-784c27b1/mt7915/mt7915.h
-@@ -286,6 +286,8 @@ struct mt7915_phy {
+--- a/mt7915/mt7915.h
++++ b/mt7915/mt7915.h
+@@ -284,6 +284,8 @@ struct mt7915_phy {
  	struct mib_stats mib;
  	struct mt76_channel_state state_ts;
  
