@@ -1,11 +1,20 @@
---- a/mt7915/init.c
-+++ b/mt7915/init.c
-@@ -582,7 +582,7 @@ static void mt7915_init_work(struct work
- 	mt7915_init_txpower(dev, &dev->mphy.sband_5g.sband);
- 	mt7915_init_txpower(dev, &dev->mphy.sband_6g.sband);
- 	mt7915_txbf_init(dev);
--	dev->dbg.muru_onoff = OFDMA_DL | MUMIMO_UL | MUMIMO_DL;
-+	dev->dbg.muru_onoff = 0;
- }
+Index: mt76-2022-04-28-784c27b1/mt7915/mcu.c
+===================================================================
+--- mt76-2022-04-28-784c27b1.orig/mt7915/mcu.c
++++ mt76-2022-04-28-784c27b1/mt7915/mcu.c
+@@ -986,11 +986,10 @@ mt7915_mcu_sta_muru_tlv(struct sk_buff *
  
- void mt7915_wfsys_reset(struct mt7915_dev *dev)
+ 	muru = (struct sta_rec_muru *)tlv;
+ 
+-	muru->cfg.mimo_dl_en = mvif->cap.he_mu_ebfer ||
+-			       mvif->cap.vht_mu_ebfer ||
+-			       mvif->cap.vht_mu_ebfee;
+-	muru->cfg.mimo_ul_en = true;
+-	muru->cfg.ofdma_dl_en = true;
++	muru->cfg.mimo_dl_en = false;
++	muru->cfg.mimo_ul_en = false;
++	muru->cfg.ofdma_dl_en = false;
++	muru->cfg.ofdma_ul_en = false;
+ 
+ 	if (sta->vht_cap.vht_supported)
+ 		muru->mimo_dl.vht_mu_bfee =
