@@ -1,0 +1,34 @@
+From: Bo Jiao <Bo.Jiao@mediatek.com>
+Subject: reset_work may be blocked when mcu message timeout occurs
+Signed-off-by: Bo Jiao <Bo.Jiao@mediatek.com>
+---
+ mt7615/mmio.c | 2 +-
+ mt7915/mmio.c | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mt7615/mmio.c b/mt7615/mmio.c
+index ce45c3b..a208035 100644
+--- a/mt7615/mmio.c
++++ b//mt7615/mmio.c
+@@ -145,7 +145,7 @@ static void mt7615_irq_tasklet(struct tasklet_struct *t)
+ 		return;
+ 
+ 	dev->reset_state = mcu_int;
+-	ieee80211_queue_work(mt76_hw(dev), &dev->reset_work);
++	queue_work(dev->mt76.wq, &dev->reset_work);
+ 	wake_up(&dev->reset_wait);
+ }
+ 
+diff --git a/mt7915/mmio.c b/mt7915/mmio.c
+index 89ea285..1d73c5a 100644
+--- a/mt7915/mmio.c
++++ b/mt7915/mmio.c
+@@ -607,7 +607,7 @@ static void mt7915_irq_tasklet(struct tasklet_struct *t)
+ 		mt76_wr(dev, MT_MCU_CMD, val);
+ 		if (val & MT_MCU_CMD_ERROR_MASK) {
+ 			dev->reset_state = val;
+-			ieee80211_queue_work(mt76_hw(dev), &dev->reset_work);
++			queue_work(dev->mt76.wq, &dev->reset_work);
+ 			wake_up(&dev->reset_wait);
+ 		}
+ 	}
